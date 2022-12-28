@@ -31,6 +31,7 @@ BlazeComponent.extendComponent({
     this.autorun(() => {
       const limitOrgs = this.page.get() * orgsPerPage;
       const limitTeams = this.page.get() * teamsPerPage;
+      const limitFilters = this.page.get() * filtersPerPage;
       const limitUsers = this.page.get() * usersPerPage;
 
       this.subscribe('org', this.findOrgsOptions.get(), limitOrgs, () => {
@@ -44,6 +45,16 @@ BlazeComponent.extendComponent({
       });
 
       this.subscribe('team', this.findTeamsOptions.get(), limitTeams, () => {
+        this.loadNextPageLocked = false;
+        const nextPeakBefore = this.callFirstWith(null, 'getNextPeak');
+        this.calculateNextPeak();
+        const nextPeakAfter = this.callFirstWith(null, 'getNextPeak');
+        if (nextPeakBefore === nextPeakAfter) {
+          this.callFirstWith(null, 'resetNextPeak');
+        }
+      });
+
+      this.subscribe('filter', this.findFiltersOptions.get(), limitFilters, () => {
         this.loadNextPageLocked = false;
         const nextPeakBefore = this.callFirstWith(null, 'getNextPeak');
         this.calculateNextPeak();
@@ -83,11 +94,22 @@ BlazeComponent.extendComponent({
             this.filterTeam();
           }
         },
+        'click #searchFilterButton'() {
+          this.filterFilter();
+        },
+        'keydown #searchFilterInput'(event) {
+          if (event.keyCode === 13 && !event.shiftKey) {
+            this.filterFilter();
+          }
+        },
         'click #searchButton'() {
           this.filterPeople();
         },
         'click #addOrRemoveTeam'(){
           document.getElementById("divAddOrRemoveTeamContainer").style.display = 'block';
+        },
+        'click #addOrRemoveFilter'(){
+          document.getElementById("divAddOrRemoveFilterContainer").style.display = 'block';
         },
         'keydown #searchInput'(event) {
           if (event.keyCode === 13 && !event.shiftKey) {
@@ -100,11 +122,15 @@ BlazeComponent.extendComponent({
         'click #newTeamButton'() {
           Popup.open('newTeam');
         },
+        'click #newFilterButton'() {
+          Popup.open('newFilter');
+        },
         'click #newUserButton'() {
           Popup.open('newUser');
         },
         'click a.js-org-menu': this.switchMenu,
         'click a.js-team-menu': this.switchMenu,
+        'click a.js-filter-menu': this.switchMenu,
         'click a.js-people-menu': this.switchMenu,
       },
     ];
@@ -162,6 +188,14 @@ BlazeComponent.extendComponent({
     this.numberTeams.set(teams.count(false));
     return teams;
   },
+  filterList() {
+    const filters = Filter.find(this.findFiltersOptions.get(), {
+      sort: { filterDisplayName: 1 },
+      fields: { _id: true },
+    });
+    this.numberFilters.set(filters.count(false));
+    return filters;
+  },
   peopleList() {
     const users = Users.find(this.findUsersOptions.get(), {
       sort: { username: 1 },
@@ -176,6 +210,9 @@ BlazeComponent.extendComponent({
   teamNumber() {
     return this.numberTeams.get();
   },
+  filterNumber() {
+    return this.numberFilters.get();
+  },
   peopleNumber() {
     return this.numberPeople.get();
   },
@@ -187,6 +224,7 @@ BlazeComponent.extendComponent({
       const targetID = target.data('id');
       this.orgSetting.set('org-setting' === targetID);
       this.teamSetting.set('team-setting' === targetID);
+      this.filterSetting.set('filter-setting' === targetID);
       this.peopleSetting.set('people-setting' === targetID);
     }
   },
@@ -201,6 +239,12 @@ Template.orgRow.helpers({
 Template.teamRow.helpers({
   teamData() {
     return Team.findOne(this.teamId);
+  },
+});
+
+Template.filterRow.helpers({
+  filterData() {
+    return Filter.findOne(this.filterId);
   },
 });
 
@@ -247,6 +291,15 @@ Template.editTeamPopup.helpers({
   },
 });
 
+Template.editFilterPopup.helpers({
+  filter() {
+    return Filter.findOne(this.filterId);
+  },
+  errorMessage() {
+    return Template.instance().errorMessage.get();
+  },
+});
+
 Template.editUserPopup.helpers({
   user() {
     return Users.findOne(this.userId);
@@ -259,6 +312,9 @@ Template.editUserPopup.helpers({
   },
   teamsDatas() {
     return Team.find({}, {sort: { teamDisplayName: 1 }});
+  },
+  filtersDatas() {
+    return Filter.find({}, {sort: { filterDisplayName: 1 }});
   },
   isSelected(match) {
     const userId = Template.instance().data.userId;
@@ -280,6 +336,10 @@ Template.newOrgPopup.onCreated(function () {
 });
 
 Template.newTeamPopup.onCreated(function () {
+  this.errorMessage = new ReactiveVar('');
+});
+
+Template.newFilterPopup.onCreated(function () {
   this.errorMessage = new ReactiveVar('');
 });
 
@@ -320,6 +380,15 @@ Template.newTeamPopup.helpers({
   },
 });
 
+Template.newFilterPopup.helpers({
+  filter() {
+    return Filter.findOne(this.filterId);
+  },
+  errorMessage() {
+    return Template.instance().errorMessage.get();
+  },
+});
+
 Template.newUserPopup.helpers({
   user() {
     return Users.findOne(this.userId);
@@ -332,6 +401,9 @@ Template.newUserPopup.helpers({
   },
   teamsDatas() {
     return Team.find({}, {sort: { teamDisplayName: 1 }});
+  },
+  filtersDatas() {
+    return Filter.find({}, {sort: { filterDisplayName: 1 }});
   },
   isSelected(match) {
     const userId = Template.instance().data.userId;
@@ -382,6 +454,21 @@ BlazeComponent.extendComponent({
     ];
   },
 }).register('teamRow');
+
+BlazeComponent.extendComponent({
+  onCreated() {},
+  filter() {
+    return Filter.findOne(this.filterId);
+  },
+  events() {
+    return [
+      {
+        'click a.edit-filter': Popup.open('editFilter'),
+        'click a.more-settings-filter': Popup.open('settingsFilter'),
+      },
+    ];
+  },
+}).register('filterRow');
 
 BlazeComponent.extendComponent({
   onCreated() {},
