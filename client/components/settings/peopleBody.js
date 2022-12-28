@@ -1,6 +1,7 @@
 const orgsPerPage = 25;
 const teamsPerPage = 25;
 const usersPerPage = 25;
+const filtersPerPage = 25;
 let userOrgsTeamsAction = ""; //poosible actions 'addOrg', 'addTeam', 'removeOrg' or 'removeTeam' when adding or modifying a user
 let selectedUserChkBoxUserIds = [];
 
@@ -13,12 +14,15 @@ BlazeComponent.extendComponent({
     this.loading = new ReactiveVar(false);
     this.orgSetting = new ReactiveVar(true);
     this.teamSetting = new ReactiveVar(true);
+    this.filterSetting = new ReactiveVar(true);
     this.peopleSetting = new ReactiveVar(true);
     this.findOrgsOptions = new ReactiveVar({});
     this.findTeamsOptions = new ReactiveVar({});
+    this.findFiltersOptions = new ReactiveVar({});
     this.findUsersOptions = new ReactiveVar({});
     this.numberOrgs = new ReactiveVar(0);
     this.numberTeams = new ReactiveVar(0);
+    this.numberFilters = new ReactiveVar(0);
     this.numberPeople = new ReactiveVar(0);
 
     this.page = new ReactiveVar(1);

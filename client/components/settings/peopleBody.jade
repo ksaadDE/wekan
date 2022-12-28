@@ -29,6 +29,17 @@ template(name="people")
               | {{_ 'search'}}
             .ext-box-right
               span {{#unless isMiniScreen}}{{_ 'team-number'}}{{/unless}} #{teamNumber}
+          else if filterSetting.get
+            span
+              i.fa.fa-users
+              unless isMiniScreen
+                | {{_ 'filters'}}
+            input#searchFilterInput(placeholder="{{_ 'search'}}")
+            button#searchFilterButton
+              i.fa.fa-search
+              | {{_ 'search'}}
+            .ext-box-right
+              span {{#unless isMiniScreen}}{{_ 'filter-number'}}{{/unless}} #{filterNumber}
           else if peopleSetting.get
             span
               i.fa.fa-user
@@ -44,6 +55,10 @@ template(name="people")
               button#addOrRemoveTeam
                 i.fa.fa-edit
                 | {{_ 'add'}} / {{_ 'delete'}} {{_ 'teams'}}
+            .divAddOrRemoveFilter#divAddOrRemoveFilter
+              button#addOrRemoveFilter
+                i.fa.fa-edit
+                | {{_ 'add'}} / {{_ 'delete'}} {{_ 'filters'}}
 
       .content-body
         .side-menu
@@ -57,6 +72,10 @@ template(name="people")
                 i.fa.fa-users
                 | {{_ 'teams'}}
             li
+              a.js-filter-menu(data-id="filter-setting")
+                i.fa.fa-users
+                | {{_ 'filters'}}
+            li
               a.js-people-menu(data-id="people-setting")
                 i.fa.fa-user
                 | {{_ 'people'}}
@@ -67,6 +86,8 @@ template(name="people")
             +orgGeneral
           else if teamSetting.get
             +teamGeneral
+          else if filterSetting.get
+            +filterGeneral
           else if peopleSetting.get
             +peopleGeneral
 
@@ -101,6 +122,21 @@ template(name="teamGeneral")
       each team in teamList
         +teamRow(teamId=team._id)
 
+template(name="filterGeneral")
+  table
+    tbody
+      tr
+        th {{_ 'displayName'}}
+        th {{_ 'description'}}
+        th {{_ 'shortName'}}
+        th {{_ 'website'}}
+        th {{_ 'createdAt'}}
+        th {{_ 'active'}}
+        th
+          +newFilterRow
+      each filter in filterList
+        +filterRow(filterId=filter._id)
+
 template(name="peopleGeneral")
   #divAddOrRemoveTeamContainer
     +modifyTeamsUsers
@@ -121,6 +157,7 @@ template(name="peopleGeneral")
         th {{_ 'import-usernames'}}
         th {{_ 'organizations'}}
         th {{_ 'teams'}}
+        th {{_ 'filters'}}
         th
           +newUserRow
       each user in peopleList
@@ -137,6 +174,11 @@ template(name="newOrgRow")
 
 template(name="newTeamRow")
   a.new-team
+    i.fa.fa-plus-square
+    | {{_ 'new'}}
+
+template(name="newFilterRow")
+  a.new-filter
     i.fa.fa-plus-square
     | {{_ 'new'}}
 
@@ -213,6 +255,40 @@ template(name="teamRow")
       a.more-settings-team
         i.fa.fa-ellipsis-h
 
+template(name="filterRow")
+  tr
+    if filterData.filterIsActive
+      td {{ filterData.filterDisplayName }}
+    else
+      td <s>{{ filterData.filterDisplayName }}</s>
+    if filterData.filterIsActive
+      td {{ filterData.filterDesc }}
+    else
+      td <s>{{ filterData.filterDesc }}</s>
+    if filterData.filterIsActive
+      td {{ filterData.filterShortName }}
+    else
+      td <s>{{ filterData.filterShortName }}</s>
+    if filterData.filterIsActive
+      td {{ filterData.filterWebsite }}
+    else
+      td <s>{{ filterData.filterWebsite }}</s>
+    if filterData.filterIsActive
+      td {{ moment filterData.createdAt 'LLL' }}
+    else
+      td <s>{{ moment filterData.createdAt 'LLL' }}</s>
+    td
+      if filterData.filterIsActive
+        | {{_ 'yes'}}
+      else
+        | {{_ 'no'}}
+    td
+      a.edit-filter
+        i.fa.fa-edit
+        | {{_ 'edit'}}
+      a.more-settings-filter
+        i.fa.fa-ellipsis-h
+
 template(name="peopleRow")
   tr
     if userData.loginDisabled
@@ -286,6 +362,10 @@ template(name="peopleRow")
       td <s>{{ userData.teamsUserBelongs }}</s>
     else
       td {{ userData.teamsUserBelongs }}
+    if userData.loginDisabled
+      td <s>{{ userData.filtersUserBelongs }}</s>
+    else
+      td {{ userData.filtersUserBelongs }}
     td
       a.edit-user
         i.fa.fa-edit
@@ -341,6 +421,32 @@ template(name="editTeamPopup")
       select.select-active.js-team-isactive
         option(value="false") {{_ 'no'}}
         option(value="true" selected="{{team.teamIsActive}}") {{_ 'yes'}}
+    hr
+    div.buttonsContainer
+      input.primary.wide(type="submit" value="{{_ 'save'}}")
+
+template(name="editFilterPopup")
+  form
+    label.hide.filterId(type="text" value=filter._id)
+    label
+      | {{_ 'displayName'}}
+      input.js-filterDisplayName(type="text" value=filter.filterDisplayName required)
+      span.error.hide.filtername-taken
+        | {{_ 'error-filtername-taken'}}
+    label
+      | {{_ 'description'}}
+      input.js-filterDesc(type="text" value=filter.filterDesc required)
+    label
+      | {{_ 'shortName'}}
+      input.js-filterShortName(type="text" value=filter.filterShortName required)
+    label
+      | {{_ 'website'}}
+      input.js-filterWebsite(type="text" value=filter.filterWebsite required)
+    label
+      | {{_ 'active'}}
+      select.select-active.js-filter-isactive
+        option(value="false") {{_ 'no'}}
+        option(value="true" selected="{{filter.filterIsActive}}") {{_ 'yes'}}
     hr
     div.buttonsContainer
       input.primary.wide(type="submit" value="{{_ 'save'}}")
@@ -416,6 +522,16 @@ template(name="editUserPopup")
           option(value="{{value._id}}") {{_ value.teamDisplayName}}
       input#jsUserTeamsInPut.js-userteams(type="text" value=user.teamsUserBelongs, disabled)
       input#jsUserTeamIdsInPut.js-userteamIds.hide(type="text" value=user.teamIdsUserBelongs)
+    label
+      | {{_ 'filters'}}
+      i.fa.fa-plus-square#addUserFilter
+      i.fa.fa-minus-square#removeUserFilter
+      select.js-filters#jsFilters
+        option(value="-1") {{_ 'filters'}} :
+        each value in filtersDatas
+          option(value="{{value._id}}") {{_ value.filterDisplayName}}
+      input#jsUserFiltersInPut.js-userfilters(type="text" value=user.filtersUserBelongs, disabled)
+      input#jsUserFilterIdsInPut.js-userfilterIds.hide(type="text" value=user.filterIdsUserBelongs)
 
     hr
     label
@@ -472,6 +588,30 @@ template(name="newTeamPopup")
     div.buttonsContainer
       input.primary.wide(type="submit" value="{{_ 'save'}}")
 
+template(name="newFilterPopup")
+  form
+    //label.hide.filterId(type="text" value=filter._id)
+    label
+      | {{_ 'displayName'}}
+      input.js-filterDisplayName(type="text" value="" required)
+    label
+      | {{_ 'description'}}
+      input.js-filterDesc(type="text" value="" required)
+    label
+      | {{_ 'shortName'}}
+      input.js-filterShortName(type="text" value="" required)
+    label
+      | {{_ 'website'}}
+      input.js-filterWebsite(type="text" value="" required)
+    label
+      | {{_ 'active'}}
+      select.select-active.js-filter-isactive
+        option(value="false" selected="selected") {{_ 'no'}}
+        option(value="true") {{_ 'yes'}}
+    hr
+    div.buttonsContainer
+      input.primary.wide(type="submit" value="{{_ 'save'}}")
+
 template(name="modifyTeamsUsers")
   label
     | {{_ 'teams'}}
@@ -488,6 +628,24 @@ template(name="modifyTeamsUsers")
       span {{_ 'delete'}}
   div.buttonsContainer
     input.primary.wide#addTeamBtn(type="submit" value="{{_ 'save'}}")
+    input.primary.wide#cancelBtn(type="submit" value="{{_ 'cancel'}}")
+
+template(name="modifyFiltersUsers")
+  label
+    | {{_ 'filters'}}
+    select.js-filtersUser#jsfiltersUser
+      each value in filtersDatas
+        option(value="{{value._id}}") {{_ value.filterDisplayName}}
+  hr
+  label
+    | {{_ 'r-action'}}
+    .form-group.flex
+      input.wekan-form-control#addAction(type="radio" name="action" value="true" checked="checked")
+      span {{_ 'add'}}
+      input.wekan-form-control#deleteAction(type="radio" name="action" value="false")
+      span {{_ 'delete'}}
+  div.buttonsContainer
+    input.primary.wide#addFilterBtn(type="submit" value="{{_ 'save'}}")
     input.primary.wide#cancelBtn(type="submit" value="{{_ 'cancel'}}")
 
 template(name="newUserPopup")
@@ -556,6 +714,16 @@ template(name="newUserPopup")
           option(value="{{value._id}}") {{_ value.teamDisplayName}}
       input#jsUserTeamsInPutNewUser.js-userteamsNewUser(type="text" value=user.teamsUserBelongs, disabled)
       input#jsUserTeamIdsInPutNewUser.js-userteamIdsNewUser.hide(type="text" value=user.teamIdsUserBelongs)
+    label
+      | {{_ 'filters'}}
+      i.fa.fa-plus-square#addUserFilterNewUser
+      i.fa.fa-minus-square#removeUserFilterNewUser
+      select.js-filtersNewUser#jsFiltersNewUser
+        option(value="-1") {{_ 'filters'}} :
+        each value in filtersDatas
+          option(value="{{value._id}}") {{_ value.filterDisplayName}}
+      input#jsUserFiltersInPutNewUser.js-userfiltersNewUser(type="text" value=user.filtersUserBelongs, disabled)
+      input#jsUserFilterIdsInPutNewUser.js-userfilterIdsNewUser.hide(type="text" value=user.filterIdsUserBelongs)
 
     hr
     label
@@ -599,6 +767,20 @@ template(name="settingsTeamPopup")
           | {{_ 'delete-team-confirm-popup'}}
         br
         label.hide.teamId(type="text" value=team._id)
+        div.buttonsContainer
+          input#deleteButton.card-details-red.right.wide(type="button" value="{{_ 'delete'}}")
+
+template(name="settingsFilterPopup")
+  ul.pop-over-list
+    li
+      form
+        label#deleteFilterWarningMessage.hide
+          | {{_ 'delete-filter-warning-message'}}
+        br
+        label
+          | {{_ 'delete-filter-confirm-popup'}}
+        br
+        label.hide.filterId(type="text" value=filter._id)
         div.buttonsContainer
           input#deleteButton.card-details-red.right.wide(type="button" value="{{_ 'delete'}}")
 

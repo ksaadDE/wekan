@@ -79,6 +79,25 @@ Users.attachSchema(
        */
       type: String,
     },
+    filters: {
+      /**
+       * the list of filters that a user belongs to
+       */
+      type: [Object],
+      optional: true,
+    },
+    'filters.$.filterId': {
+      /**
+       * The uniq ID of the filter
+       */
+      type: String,
+    },
+    'filters.$.filterDisplayName': {
+      /**
+       * The display name of the filter
+       */
+      type: String,
+    },
     emails: {
       /**
        * the list of emails attached to a user
