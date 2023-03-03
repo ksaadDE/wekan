@@ -1,0 +1,48 @@
+version: '3.4'
+
+services:
+wekandb:
+restart: always
+image: mongo:5
+command: mongod --logpath /dev/null --oplogSize 128 --quiet
+healthcheck:
+test: ["CMD", "mongo", "--quiet", "--eval", "'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'"]
+interval: 15s
+timeout: 10s
+retries: 3
+start_period: 10s
+volumes:
+- ./wekan-db:/data/db
+- ./wekan-db-dump:/dump
+- /etc/localtime:/etc/localtime:ro
+- /etc/timezone:/etc/timezone:ro
+networks:
+- wekan
+
+wekan:
+build:
+dockerfile: ./wekan/Dockerfile
+#image: wekanteam/wekan:v6.78
+restart: always
+ports:
+- 7972:8080
+environment:
+- MONGO_URL=mongodb://wekandb:27017/wekan
+- ROOT_URL=wekan.local
+- MAIL_URL=localhost
+- MAIL_FROM=root@localhost
+- WITH_API=true
+- WRITABLE_PATH=/data
+volumes:
+- ./wekan_data:/data
+- /etc/localtime:/etc/localtime:ro
+depends_on:
+- wekandb
+networks:
+- wekan
+- root_nginx
+
+networks:
+#nginx:
+#external: true
+wekan:
